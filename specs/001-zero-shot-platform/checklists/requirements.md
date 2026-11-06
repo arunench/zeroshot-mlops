@@ -32,12 +32,12 @@
 ## Notes
 
 - The technology-specific checklist items remain incomplete because the user explicitly
-  requires Hugging Face model identifiers, PyTorch behavior, Docker Compose, MinIO,
-  configuration-file persistence, and an exact MinIO object path in the specification.
+  requires Hugging Face model identifiers, PyTorch behavior, Docker Compose, MinIO, and an
+  exact MinIO object path in the specification.
 - SC-006 names MinIO and a model download because the requested end-to-end demo explicitly
   requires those steps; therefore, the technology-agnostic success-criteria check remains
   incomplete.
-- Candidate-label persistence in a local configuration file conflicts with the current
-  constitution's local-file constraint. FR-024 requires a documented ADR resolving the
-  exception before implementation begins.
+- Model and candidate-label configuration persist in `configs/models.yaml` and
+  `configs/labels.yaml`, as permitted by the current constitution. MinIO bucket
+  substitution remains documented through an ADR as required by the constitution.
 - SC-006 is verified by completing each listed demo workflow step end to end.

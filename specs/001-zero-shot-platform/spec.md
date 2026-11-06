@@ -15,6 +15,15 @@ administrator model and candidate-label management, user classification, and dur
 prediction records. It excludes model training or fine-tuning, distributed orchestration,
 production authentication, and multi-tenant operation.
 
+## Clarifications
+
+### Session 2026-11-05
+
+- Q: Which bucket name should the platform use by default if MinIO rejects `zeroshot_learning_output` because of its naming rules? → A: Use `zeroshot-learning-output` as the default bucket and document the substitution in an ADR.
+- Q: What must be true before the administrator can see a model marked `ready`? → A: All expected model and tokenizer files for the configured revision must be present, and model metadata must pass validation; loading or test inference is not required for readiness.
+- Q: How should the platform record a configured model revision in each prediction? → A: Record the configured revision string verbatim; omit it when none is configured.
+- Q: How should the unauthenticated administrator workflow be limited to local access? → A: Bind the application to loopback only; do not expose administrator controls to other devices.
+
 ## Users and Roles
 
 - **Administrator**: Manages configured models, downloads and deletes local models,
@@ -51,8 +60,9 @@ download request reuses the already available model.
    and a ready model shows its local model directory and cache location.
 3. **Given** a complete model already exists locally, **When** the administrator requests
    its download again, **Then** the existing model is reused without downloading it again.
-4. **Given** a download is incomplete or fails, **When** the model status is refreshed,
-   **Then** it is not shown as ready and the administrator receives a clear failure message.
+4. **Given** expected model or tokenizer files are missing, or model metadata fails
+   validation, **When** the model status is refreshed, **Then** it is not shown as ready
+   and the administrator receives a clear failure message.
 5. **Given** a downloaded model is selected, **When** the administrator explicitly confirms
    deletion, **Then** that model's local files are removed and its status is no longer ready.
 6. **Given** the Hugging Face cache directory is missing, **When** the administrator requests
@@ -150,7 +160,8 @@ reported rather than silently discarded.
 3. **Given** a prediction object is written, **When** it is inspected, **Then** it contains
    the request ID, timestamp, input text, predicted class, confidence, candidate labels,
    ranked predictions, model name and Hugging Face identifier, application version, and
-   any available model revision, session ID, and latency.
+   the configured model revision verbatim when present. `model_revision` is omitted when
+   no revision is configured; session ID and latency may also be included when available.
 4. **Given** a new developer follows the README, **When** they use the documented commands
    and prerequisites, **Then** they can start the local platform and run its tests without
    committing secrets or model files.
@@ -183,16 +194,20 @@ reported rather than silently discarded.
 
 - **FR-001**: The platform MUST provide separate administrator and user workflows.
 - **FR-002**: The administrator MUST be able to view configured zero-shot models, including
-  `MoritzLaurer/deberta-v3-base-zeroshot-v2.0` and `facebook/bart-large-mnli`.
+  `MoritzLaurer/deberta-v3-base-zeroshot-v2.0` and `facebook/bart-large-mnli`, as defined
+  in `configs/models.yaml`.
 - **FR-003**: Additional zero-shot models MUST be addable through configuration only,
-  without application code changes.
+  by editing `configs/models.yaml` and without application code changes.
 - **FR-004**: The administrator MUST be able to select and download one or more models from
   Hugging Face into the controlled local project model directory.
 - **FR-005**: For each configured model, the administrator MUST be able to see its
   identifier, revision when available, status (`not downloaded`, `downloading`, `ready`,
   or `failed`), local model directory when available, and cache location when available.
-- **FR-006**: The platform MUST reuse a complete local model without downloading it again
-  and MUST NOT report a partial, failed, or invalid model as ready.
+- **FR-006**: The platform MUST reuse a complete local model without downloading it again.
+  A model is `ready` only when all expected model and tokenizer files for its configured
+  revision are present and model metadata passes validation. Successful loading or test
+  inference is not required to set the ready state. Partial, failed, or invalid downloads
+  MUST NOT be reported as ready.
 - **FR-007**: The administrator MUST be able to explicitly delete a selected downloaded
   model, clear the Hugging Face cache, and refresh the local model list. Cache cleanup
   MUST handle a missing cache directory.
@@ -202,7 +217,8 @@ reported rather than silently discarded.
 - **FR-009**: The platform MUST reject empty labels and duplicate labels. Duplicate
   comparison MUST trim surrounding whitespace and ignore letter case.
 - **FR-010**: Candidate-label sets MUST persist in the configured application
-  configuration file and remain available after an application restart.
+  configuration file `configs/labels.yaml` and remain available after an application
+  restart.
 - **FR-011**: The user MUST be able to enter text, select a downloaded model, select a
   saved candidate-label set, and submit a classification. A configured default set MAY be
   suggested as the initial selection, but the user MUST select the set to use.
@@ -215,11 +231,14 @@ reported rather than silently discarded.
   configured MinIO bucket at `predictions/YYYY/MM/DD/{request_id}.json`.
 - **FR-015**: The prediction JSON MUST contain `request_id` (unique), `timestamp`,
   `input_text`, `predicted_class`, `confidence`, `candidate_labels`, `ranked_predictions`,
-  model name, Hugging Face identifier, and `application_version`; it MAY also contain
-  `model_revision`, session ID, and latency when available.
-- **FR-016**: The default MinIO bucket MUST be `zeroshot_learning_output`, configurable
-  through an environment variable, and created automatically if missing. A different
-  bucket name requires a documented ADR if the default is rejected by MinIO naming rules.
+  model name, Hugging Face identifier, and `application_version`; it MUST contain
+  `model_revision` with the configured revision string verbatim when configured and MUST
+  omit it when no revision is configured. The JSON MAY also contain session ID and latency
+  when available.
+- **FR-016**: The default MinIO bucket MUST be `zeroshot-learning-output`, configurable
+  through an environment variable, and created automatically if missing. The ADR
+  documenting this DNS-compatible substitution for `zeroshot_learning_output` MUST be
+  recorded before implementation.
 - **FR-017**: The platform MUST clearly report model download, model availability,
   candidate-label configuration, and MinIO failures without exposing credentials.
 - **FR-018**: If MinIO cannot persist a classification, the platform MUST report the
@@ -236,21 +255,19 @@ reported rather than silently discarded.
 - **FR-023**: The repository MUST contain the constitution, this specification, and the
   subsequent implementation plan, data model, and task list before the project is
   considered complete.
-- **FR-024**: Before implementation begins, the team MUST document an ADR resolving
-  persistent candidate-label configuration in a local file against the constitution's
-  local-file constraint. The ADR MUST state the reason, benefits, risks, and impact on
-  reproducibility.
-- **FR-025**: Each configured model MUST include an optional `revision` field. When
+- **FR-024**: Each configured model MUST include an optional `revision` field. When
   present, the platform MUST use and display that revision; when absent, the platform
   MUST report that no revision is configured.
-- **FR-026**: The platform MUST sanitize submitted text by trimming surrounding whitespace
+- **FR-025**: The platform MUST sanitize submitted text by trimming surrounding whitespace
   and MUST limit it to 10,000 characters after trimming. It MUST reject longer text and
   disallowed control characters with a clear error. Accepted text MUST be treated as plain
   text and safely escaped when displayed.
-- **FR-027**: Every prediction MUST have a request ID that is unique across persisted
+- **FR-026**: Every prediction MUST have a request ID that is unique across persisted
   prediction objects and is used in its MinIO object path.
-- **FR-028**: An automated CI workflow MUST run lint checks and unit tests for each
+- **FR-027**: An automated CI workflow MUST run lint checks and unit tests for each
   submitted change.
+- **FR-028**: The application MUST bind to the local loopback interface only. Its
+  administrator workflow MUST NOT be reachable from other devices on the network.
 
 ### Non-Functional Requirements
 
@@ -259,8 +276,9 @@ reported rather than silently discarded.
   documented sufficiently for a new developer to reproduce the project locally.
 - **NFR-002**: Inference MUST use PyTorch and MUST NOT silently switch to another backend
   or deep-learning framework.
-- **NFR-003**: Configuration and credentials MUST be supplied through environment
-  variables or secret management; secrets MUST NOT be included in logs or committed files.
+- **NFR-003**: Credentials MUST be supplied through environment variables or secret
+  management; secrets MUST NOT be included in logs or committed files. Non-secret model
+  and label configuration MUST be read from `configs/models.yaml` and `configs/labels.yaml`.
 - **NFR-004**: Structured logs MUST identify model downloads, inference, cache cleanup,
   and MinIO writes without unnecessarily recording sensitive input text.
 - **NFR-005**: The application MUST give clear, actionable messages for invalid input,
@@ -268,8 +286,9 @@ reported rather than silently discarded.
   MinIO failures.
 - **NFR-006**: Quality gates MUST include linting, formatting, automated tests, and
   acceptance-criteria verification on every submission.
-- **NFR-007**: Administrator access MUST be restricted to local use and MUST NOT be
-  represented as authenticated or production-grade access control.
+- **NFR-007**: Administrator access MUST be restricted to the same machine by binding to
+  loopback only. The workflow has no authentication and MUST NOT be represented as
+  production-grade access control.
 - **NFR-008**: The user interface, model management, classification, configuration,
   MinIO storage, and logging MUST have separate responsibilities.
 - **NFR-009**: The platform MUST reuse a loaded model across consecutive classifications
@@ -283,15 +302,16 @@ reported rather than silently discarded.
 - Classification input MUST be validated against the size and content rules before
   inference, treated as plain text, and safely escaped when displayed.
 - Model and cache deletion MUST require an explicit administrator action and confirmation.
-- Administrator functions are available only in the local learning environment, with no
-  authentication. They MUST NOT be exposed as remotely secured or production-safe
-  controls.
+- Administrator functions are available only on the same machine through the loopback
+  interface, with no authentication. They MUST NOT be exposed to other devices or
+  represented as remotely secured or production-safe controls.
 
 ### Acceptance Criteria
 
 1. The application starts with documented commands.
 2. MinIO starts locally through Docker Compose.
-3. The configured MinIO bucket is created automatically when missing.
+3. The configured MinIO bucket, defaulting to `zeroshot-learning-output`, is created
+   automatically when missing.
 4. The administrator sees at least the two required zero-shot models, and additional
    models can be added through configuration only; each model may specify a revision.
 5. The administrator can download the DeBERTa model and the second model.
@@ -310,14 +330,15 @@ reported rather than silently discarded.
     deletion, and storage.
 13. No secrets or model files are committed.
 14. The constitution, specification, implementation plan, data model, and task list are
-    present in the repository before project completion, and the label-persistence ADR
-    resolves the local-file constraint before implementation begins.
+    present in the repository before project completion.
 15. Repeated classification with the same model does not repeatedly reload it, and unused
     large models are not retained unnecessarily in memory.
 16. The documented administrator workflow allows a default label set to be suggested,
     while each user selects the set used for classification.
 17. Text over 10,000 characters or containing disallowed control characters is rejected
     before inference with a clear error.
+18. Administrator controls are reachable from the same machine only and cannot be reached
+    by another device on the local network.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -362,8 +383,7 @@ reported rather than silently discarded.
 - Timestamps are recorded in ISO 8601 UTC. The date path uses that timestamp's UTC date.
 - Confidence and ranked scores use the classifier's normalized score scale from 0 to 1.
 - A prediction is successful only after its JSON object has been written to MinIO.
-- Candidate-label sets persist in an application configuration file as explicitly
-  requested. This conflicts with the constitution's local-file constraint; a documented
-  ADR resolving that exception is required before implementation begins.
+- Candidate-label sets persist in `configs/labels.yaml`; model definitions persist in
+  `configs/models.yaml`. Both files contain non-secret project configuration only.
 - The maximum submitted text length is 10,000 characters after trimming surrounding
   whitespace; this default is documented for consistent validation.
