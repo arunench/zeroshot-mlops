@@ -1,7 +1,7 @@
 <!--
 Sync Impact Report
-Version change: 1.0.0 to 1.1.0 (MINOR; expanded scope, stack, and persistence requirements)
-Modified principles: Purpose and Scope; Reproducible, Fixed Technology Stack; Persistence and Component Boundaries
+Version change: 1.1.0 to 1.2.0 (MINOR; permit version-controlled model and label configuration)
+Modified principles: Persistence and Component Boundaries; Platform Constraints and Operations
 Added sections: none
 Removed sections: none
 Follow-up TODOs: none
@@ -49,7 +49,10 @@ bucket; MinIO is the system of record for predictions. The default bucket MUST b
 bucket MUST be created automatically if it does not exist. If MinIO's bucket-naming rules
 reject that default, a documented ADR MAY substitute a compliant name, such as
 `zeroshot-learning-output`. Local files MAY be used only for temporary processing, model
-caching, or tests, not as an alternate prediction record.
+caching, tests, and non-secret project configuration, not as an alternate prediction
+record. The version-controlled files `configs/models.yaml` and `configs/labels.yaml` MAY
+hold model definitions and candidate-label sets. They MUST NOT hold credentials or
+prediction records.
 The Streamlit UI, model manager, classifier, configuration, MinIO storage, and logging
 MUST be separate components with clear responsibilities. This separation makes the
 platform testable and keeps user-interface behavior independent of core services.
@@ -66,7 +69,9 @@ These requirements make failures diagnosable without compromising user data.
 
 Configuration and credentials MUST come only from environment variables or a secret
 management mechanism. Secrets and credentials MUST NOT be committed. `.env.example` MUST
-contain placeholders only, never usable credentials.
+contain placeholders only, never usable credentials. The non-secret model and
+candidate-label configuration in `configs/models.yaml` and `configs/labels.yaml` MAY be
+committed so the project setup is reproducible.
 
 MinIO endpoint, bucket, and access configuration MUST be documented and reproducibly
 configured. MinIO MUST be available for integration and end-to-end testing. Local
@@ -110,4 +115,4 @@ The test suite and quality gates MUST run on every submission. Reviewers MUST co
 stack and configuration reproducibility, absence of committed model artifacts/caches and
 secrets, the MinIO end-to-end persistence test, and README reproduction instructions.
 
-**Version**: 1.1.0 | **Ratified**: 2026-11-05 | **Last Amended**: 2026-11-05
+**Version**: 1.2.0 | **Ratified**: 2026-11-05 | **Last Amended**: 2026-11-05
