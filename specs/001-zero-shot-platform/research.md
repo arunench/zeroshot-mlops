@@ -10,7 +10,10 @@
 - **Rationale**: The pipeline directly supports NLI-based zero-shot classification and
   candidate-label scoring, matching the required model families and user workflow.
   Configured revisions are passed to model loading and recorded verbatim in prediction
-  records; additional entries may omit revisions, in which case the field is omitted.
+  records. The baseline SHAs are verified against the Hugging Face model pages and never
+  use `main`. Additional entries may use a branch, tag, or commit, or omit revision; a
+  mutable branch is a documented reproducibility trade-off, while immutable commits are
+  preferred.
 - **Pinned baselines**: `MoritzLaurer/deberta-v3-base-zeroshot-v2.0` uses revision
   `8e7e5af5983a0ddb1a5b45a38b129ab69e2258e8` and `local_dir`
   `deberta-v3-base-zeroshot-v2.0`. `facebook/bart-large-mnli` uses revision

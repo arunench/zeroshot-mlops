@@ -9,7 +9,7 @@ One configured model entry from `configs/models.yaml`.
 | `key` | string | Yes | Unique stable configuration key; safe for use in managed local paths |
 | `name` | string | Yes | Human-readable display name |
 | `model_id` | string | Yes | Hugging Face repository identifier |
-| `revision` | string or null | Baselines: Yes; additional models: No | Hub branch, tag, or full commit; when set, use and record verbatim |
+| `revision` | string or null | Baselines: Yes; additional models: No | Baselines use the verified full commit SHAs below, never `main`; additional models may use a branch, tag, or commit; when set, use and record verbatim |
 | `local_dir` | string | Yes | Explicit, unique, filesystem-safe relative directory slug; never derive paths directly from `model_id` |
 
 The file MUST define at least `MoritzLaurer/deberta-v3-base-zeroshot-v2.0` and
@@ -20,9 +20,11 @@ The file MUST define at least `MoritzLaurer/deberta-v3-base-zeroshot-v2.0` and
 | `MoritzLaurer/deberta-v3-base-zeroshot-v2.0` | `8e7e5af5983a0ddb1a5b45a38b129ab69e2258e8` | `deberta-v3-base-zeroshot-v2.0` |
 | `facebook/bart-large-mnli` | `d7645e127eaf1aefc7862fd59a17a5aa8558b8ce` | `bart-large-mnli` |
 
-These are full Hugging Face commit SHAs resolved on 2026-11-05. Adding a model requires
-configuration only; additional entries may omit `revision`, in which case they use the
-`unpinned` path component and have no `model_revision` prediction field. Duplicate keys,
+These are full Hugging Face commit SHAs verified against the model pages on 2026-11-05.
+Adding a model requires configuration only; additional entries may omit `revision`, in
+which case they use the `unpinned` path component and have no `model_revision` prediction
+field. A mutable branch such as `main` is allowed for additional models only and MUST be
+documented as a reproducibility trade-off; prefer immutable commit SHAs. Duplicate keys,
 duplicate or unsafe `local_dir` values, missing baseline revisions, missing required
 values, unsafe paths, and malformed YAML are configuration errors.
 

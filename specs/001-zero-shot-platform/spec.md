@@ -264,8 +264,9 @@ reported rather than silently discarded.
   text and safely escaped when displayed.
 - **FR-026**: Every prediction MUST have a request ID that is unique across persisted
   prediction objects and is used in its MinIO object path.
-- **FR-027**: An automated CI workflow MUST run lint checks and unit tests for each
-  submitted change.
+- **FR-027**: An automated CI workflow MUST run Ruff lint and format checks, unit tests,
+  MinIO integration tests, and the end-to-end prediction-to-MinIO test for each submitted
+  change.
 - **FR-028**: The application MUST bind to the local loopback interface only. Its
   administrator workflow MUST NOT be reachable from other devices on the network.
 
@@ -284,8 +285,13 @@ reported rather than silently discarded.
 - **NFR-005**: The application MUST give clear, actionable messages for invalid input,
   unavailable models, failed downloads, invalid candidate-label configuration, and
   MinIO failures.
-- **NFR-006**: Quality gates MUST include linting, formatting, automated tests, and
-  acceptance-criteria verification on every submission.
+- **NFR-006**: On every submission, the GitHub Actions workflow MUST run Ruff lint and
+  format checks, unit tests, MinIO integration tests, and the end-to-end
+  prediction-to-MinIO test. The workflow MUST start MinIO itself and wait for its health
+  check before running storage tests, and MUST provide non-secret CI-only MinIO
+  credentials through workflow environment variables. The end-to-end test MUST use a
+  mocked model pipeline so CI downloads no model artifacts. Final acceptance-criteria
+  verification MUST also be performed at completion as specified in T029.
 - **NFR-007**: Administrator access MUST be restricted to the same machine by binding to
   loopback only. The workflow has no authentication and MUST NOT be represented as
   production-grade access control.
@@ -324,8 +330,9 @@ reported rather than silently discarded.
    unique request ID, and date-based object path.
 10. Empty, oversized, or invalid text; missing models; invalid labels; and MinIO errors
     produce clear messages.
-11. CI runs lint and unit tests; unit tests pass, and MinIO integration tests pass when
-    MinIO is running.
+11. On every submission, CI runs Ruff lint and format checks, unit tests, MinIO integration
+    tests, and the mocked-pipeline end-to-end prediction-to-MinIO test after starting and
+    health-checking MinIO.
 12. The README covers setup, usage, testing, and troubleshooting, as well as caching,
     deletion, and storage.
 13. No secrets or model files are committed.

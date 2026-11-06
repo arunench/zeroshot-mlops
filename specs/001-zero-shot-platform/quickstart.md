@@ -39,9 +39,14 @@ python -m pip install -r requirements.lock
 python -m streamlit run app/streamlit_app.py --server.address 127.0.0.1
 ```
 
-The host-run app reads `MINIO_ENDPOINT=localhost:9000`. If running the app inside
-Compose, set `MINIO_ENDPOINT=minio:9000` so it uses Compose service discovery and the
-internal MinIO port; do not use `localhost` between containers.
+For a host-run app, `.streamlit/config.toml` also sets `server.address = "127.0.0.1"`;
+the command explicitly binds to that address. The host-run app reads
+`MINIO_ENDPOINT=localhost:9000`. For an app running inside Compose, set
+`MINIO_ENDPOINT=minio:9000` so it uses Compose service discovery and the internal MinIO
+port; do not use `localhost` between containers. In Compose, Streamlit listens on
+`0.0.0.0` inside its container, and `docker-compose.yml` publishes it only as
+`127.0.0.1:8501:8501`. Verify the app cannot be reached from another device on the local
+network; do not change the host binding to `0.0.0.0`.
 
 Makefile targets are optional because `make` may be unavailable on Windows. Use the
 direct module commands as the portable alternative; no `streamlit.exe`, `ruff.exe`, or

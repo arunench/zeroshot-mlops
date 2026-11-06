@@ -34,9 +34,9 @@ pytest; Ruff (lint and format)
 local `models/` directory for model snapshots and Hugging Face cache. Model locations
 resolve to `MODEL_DIR/<local_dir>/<revision or "unpinned">`.
 
-**Testing**: pytest unit tests with mocked model/pipeline and MinIO client; optional MinIO
-integration tests; end-to-end prediction persistence test; GitHub Actions lint and unit
-test job
+**Testing**: pytest unit tests with mocked model/pipeline and MinIO client; MinIO
+integration tests; end-to-end prediction persistence test; GitHub Actions workflow runs
+lint, format, unit, MinIO integration, and end-to-end checks on every push and pull request
 
 **Target Platform**: Local Windows/macOS/Linux developer environment; Docker Compose
 MinIO service; host application bound to `127.0.0.1` only
@@ -67,7 +67,7 @@ serving or multi-tenant operation.
 | Persistence | Every successful prediction written as JSON to MinIO; YAML is only project configuration |
 | Configuration and secrets | Commit non-secret YAML; load credentials from environment or secret management; `.env.example` placeholders only |
 | Separation of concerns | Streamlit pages are UI-only; model, classifier, MinIO, configuration, and logging live in separate services/utilities |
-| Testing and quality gates | pytest, mocked large models, MinIO integration tests, CI lint/unit tests, and an end-to-end MinIO prediction check |
+| Testing and quality gates | pytest, mocked large models, MinIO integration tests, CI lint/format/unit/integration/end-to-end checks, and final acceptance verification |
 | Error handling, observability, and privacy | Clear service errors; structured events; avoid logging input text or credentials |
 | Local administrator boundary | Bind Streamlit to loopback; explicitly state no authentication and local trust boundary |
 | ADR process | Document the DNS-compatible bucket substitution before implementation |
@@ -149,8 +149,11 @@ No inference backend fallback is permitted.
 The configured revision is passed to the Transformers/Hugging Face load operation and
 shown in model status. Both baseline models have full commit SHA revisions pinned in
 `configs/models.yaml`; their values are included below and recorded verbatim as
-`model_revision` in predictions. Additional model entries may omit revision; they are
-then stored under `unpinned`, shown as unpinned, and omit `model_revision` from records.
+`model_revision` in predictions. These baseline SHAs are verified against their Hugging
+Face model pages and MUST NOT be replaced with `main` or invented values. Additional
+model entries may use a branch, tag, or commit, or omit revision; a mutable branch is a
+reproducibility trade-off and MUST be documented as such. Entries without revision are
+stored under `unpinned`, shown as unpinned, and omit `model_revision` from records.
 
 | Model ID | Pinned revision | `local_dir` |
 |---|---|---|
@@ -225,23 +228,31 @@ with actionable messages; never replace malformed files with empty defaults.
 - Mock `transformers.pipeline`, model downloads, filesystem effects where practical, and
   MinIO clients in fast unit tests. Do not download large models in ordinary CI.
 - MinIO integration tests live in `tests/integration/test_minio_storage.py`, are
-  opt-in/configured against a running local MinIO service, and verify bucket
-  auto-creation and prediction JSON/path.
+  configured against a running MinIO service, and verify bucket auto-creation and
+  prediction JSON/path.
 - End-to-end local validation starts the stack, downloads a model, classifies, inspects
   the object, explicitly deletes a model or clears cache, and runs tests.
-- GitHub Actions runs lint and unit tests on each submitted change; integration tests run
-  when the workflow is configured with a MinIO service.
+- GitHub Actions runs on every push and pull request. Each CI run performs Ruff lint and
+  format checks, unit tests, MinIO integration tests, and the end-to-end
+  prediction-to-MinIO test. The workflow starts its own MinIO container, waits for its
+  readiness endpoint, and supplies non-secret CI-only MinIO credentials through workflow
+  environment variables. The end-to-end test uses a mocked Transformers pipeline, so CI
+  downloads no models. CI runs the full test suite rather than making MinIO coverage
+  conditional.
 
 ### Docker and local development
 
 Docker Compose starts a local MinIO service with persistent named volume, health check,
-and example-only local credentials sourced from environment values. The application
-Dockerfile uses a pinned Python base, installs locked dependencies, excludes `models/`,
-`.env`, and caches from the image context, and runs as a non-root user. A host-run app
-binds to `127.0.0.1`; in Compose, publish its container port only to host
-`127.0.0.1`. This enforces local unauthenticated administrator access; do not expose
-administrator controls to other devices. A developer can also run the app directly in a
-Python virtual environment.
+and credentials sourced from environment values without usable hard-coded fallbacks. The
+application Dockerfile uses a pinned Python base, installs locked dependencies, excludes
+`models/`, `.env`, and caches from the image context, and runs as a non-root user. A
+host-run app binds to `127.0.0.1` using `.streamlit/config.toml` and the documented
+`python -m streamlit run app/streamlit_app.py --server.address 127.0.0.1` command. In
+Compose, Streamlit listens on the container interface (`0.0.0.0`) while the published host
+port is bound only to loopback as `127.0.0.1:8501:8501`. This enforces local
+unauthenticated administrator access; verify the app is not reachable from other devices
+and do not expose administrator controls to the network. A developer can also run the app
+directly in a Python virtual environment.
 Makefile targets provide common setup, lint, test, MinIO, app, and cleanup commands.
 Every Python tool is also invoked as a module so Windows does not depend on potentially
 blocked `.exe` shims. The Makefile is optional; the equivalent direct commands are:
@@ -261,9 +272,12 @@ Use the Docker Compose app target for a Compose-hosted application, configured w
 
 ### Deployment approach
 
-V1 targets local single-machine demonstrations only. Docker Compose may run the app and
-MinIO for repeatable local operation, but the Streamlit service remains loopback-bound
-and is not a production or multi-user deployment. No public ingress, remote administrator
+V1 targets local single-machine demonstrations only. Host-run Streamlit binds to
+`127.0.0.1`. In Docker Compose, Streamlit listens on `0.0.0.0` inside its container so
+Docker can forward requests, but its host port mapping MUST be
+`127.0.0.1:8501:8501`; MinIO ports are likewise restricted to host loopback. Acceptance
+verification confirms another device on the local network cannot reach the application.
+This is not a production or multi-user deployment. No public ingress, remote administrator
 access, or production authentication is included.
 
 ## Project Structure
@@ -279,6 +293,9 @@ specs/001-zero-shot-platform/
 ├── contracts/
 │   └── prediction.schema.json
 └── tasks.md
+docs/
+└── adr/
+    └── 0001-minio-bucket-name.md
 ```
 
 ### Source Code
@@ -312,6 +329,8 @@ tests/
 .github/
 └── workflows/
     └── ci.yml
+.streamlit/
+└── config.toml
 Dockerfile
 docker-compose.yml
 Makefile
