@@ -26,7 +26,7 @@ def main() -> None:
         "candidate labels, and persisted classifications."
     )
     st.caption(f"Application version: {settings.app_version}")
-    st.info("Administrator and classification pages will be added in their implementation phases.")
+    st.info("Use the page navigation to manage configured models.")
 
 
 if __name__ == "__main__":
