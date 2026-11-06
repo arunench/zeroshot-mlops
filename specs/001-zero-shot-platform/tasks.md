@@ -63,12 +63,12 @@ are shown without success-shaped results.
 
 ### Tests for User Story 3
 
-- [ ] T016 [P] [US3] Add unit tests for `input_text` rule “Trim surrounding whitespace; reject empty, over 10,000 characters, or disallowed control characters”; verify at least two valid labels, PyTorch pipeline selection, and that simulated PyTorch unavailability produces a clear inference error without selecting another backend; verify confidence and scores in `[0, 1]`, all labels ranked by descending score, model reuse/switching, prediction metadata, and failure handling in `tests/unit/test_classifier.py`.
+- [X] T016 [P] [US3] Add unit tests for `input_text` rule “Trim surrounding whitespace; reject empty, over 10,000 characters, or disallowed control characters”; verify at least two valid labels, PyTorch pipeline selection, and that simulated PyTorch unavailability produces a clear inference error without selecting another backend; verify confidence and scores in `[0, 1]`, all labels ranked by descending score, model reuse/switching, prediction metadata, and failure handling in `tests/unit/test_classifier.py`.
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Implement validated zero-shot inference with the Transformers pipeline explicitly set to the PyTorch backend, one-active-model pipeline reuse, score normalization to `[0, 1]` and descending ranking of every label, latency measurement, and prediction metadata in `app/services/classifier.py`; trim input and reject empty, over-10,000-character, or disallowed-control-character input and fewer than two labels before inference; log structured inference events without raw text.
-- [ ] T018 [US3] Implement the classification workflow in `app/pages/2_Classify_Text.py`; require a ready model and explicit saved-label-set selection, show clear errors for invalid input, fewer than two labels, missing models, and storage failures, escape user input and classification results for safe plain-text display, and display class, confidence, ranked labels, model, and timestamp only after MinIO persistence succeeds.
+- [X] T017 [US3] Implement validated zero-shot inference with the Transformers pipeline explicitly set to the PyTorch backend, one-active-model pipeline reuse, score normalization to `[0, 1]` and descending ranking of every label, latency measurement, and prediction metadata in `app/services/classifier.py`; trim input and reject empty, over-10,000-character, or disallowed-control-character input and fewer than two labels before inference; log structured inference events without raw text.
+- [X] T018 [US3] Implement the classification workflow in `app/pages/2_Classify_Text.py`; require a ready model and explicit saved-label-set selection, show clear errors for invalid input, fewer than two labels, missing models, and storage failures, escape user input and classification results for safe plain-text display, and display class, confidence, ranked labels, model, and timestamp only after MinIO persistence succeeds.
 
 ## Phase 5: User Story 4 - Persist and Reproduce Platform Results (Priority: P1)
 
