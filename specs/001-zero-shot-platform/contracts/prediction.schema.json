@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/zeroshot/prediction.schema.json",
+  "title": "Zero-Shot Classification Prediction Record",
+  "description": "JSON object stored in MinIO after successful classification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "timestamp",
+    "input_text",
+    "predicted_class",
+    "confidence",
+    "candidate_labels",
+    "ranked_predictions",
+    "model_name",
+    "model_id",
+    "application_version"
+  ],
+  "properties": {
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique request identifier used in the MinIO object key."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp."
+    },
+    "input_text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 10000
+    },
+    "predicted_class": {
+      "type": "string",
+      "minLength": 1
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "candidate_labels": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "ranked_predictions": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "label",
+          "score"
+        ],
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "model_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_revision": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Configured revision verbatim; omit when none is configured."
+    },
+    "application_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "latency_ms": {
+      "type": "number",
+      "minimum": 0
+    }
+  }
+}
