@@ -1,0 +1,11 @@
+models:
+  - key: deberta-v3-base-zeroshot-v2
+    name: DeBERTa v3 Zero-Shot v2
+    model_id: MoritzLaurer/deberta-v3-base-zeroshot-v2.0
+    revision: 8e7e5af5983a0ddb1a5b45a38b129ab69e2258e8
+    local_dir: deberta-v3-base-zeroshot-v2.0
+  - key: bart-large-mnli
+    name: BART Large MNLI
+    model_id: facebook/bart-large-mnli
+    revision: d7645e127eaf1aefc7862fd59a17a5aa8558b8ce
+    local_dir: bart-large-mnli

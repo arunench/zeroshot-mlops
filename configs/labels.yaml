@@ -1,0 +1,8 @@
+label_sets:
+  - key: sentiment
+    name: Sentiment
+    labels:
+      - positive
+      - neutral
+      - negative
+default_set: sentiment

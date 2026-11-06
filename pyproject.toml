@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools==75.8.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zeroshot-mlops"
+version = "0.1.0"
+description = "Local zero-shot text classification MLOps learning platform"
+requires-python = "==3.11.*"
+dependencies = [
+    "torch==2.5.1+cpu",
+    "numpy==1.26.4",
+    "transformers==4.48.3",
+    "streamlit==1.42.2",
+    "minio==7.2.15",
+    "PyYAML==6.0.2",
+    "python-dotenv==1.0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.4",
+    "ruff==0.9.6",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
